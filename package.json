@@ -1,0 +1,17 @@
+{
+  "name": "spending-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "Andrew Camps",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "googleapis": "^36.0.0",
+    "nodemon": "^1.18.9",
+    "opn": "^5.4.0"
+  }
+}
