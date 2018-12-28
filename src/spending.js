@@ -29,7 +29,7 @@ function init() {
   try {
     let token = fs.readFileSync(tok_path);
 
-    oAuth2Client.setCredentials(JSON.parse(token))
+    oAuth2Client.setCredentials(JSON.parse(token));
     global.gmail = google.gmail({version: 'v1', auth: oAuth2Client});
   } catch(err) {
     let authUrl = oAuth2Client.generateAuthUrl({
@@ -45,24 +45,24 @@ function init() {
   }
 }
 
-// function listLabels() {
-//   gmail.users.labels.list({
-//     userId: 'me',
-//   }, (err, res) => {
-//     if (err) return console.log('The API returned an error: ' + err);
-//     const labels = res.data.labels;
+function listLabels() {
+  gmail.users.labels.list({
+    userId: 'me',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const labels = res.data.labels;
 
-//     //console.log(res.data);
-//     if (labels.length) {
-//       console.log('Labels:');
-//       labels.forEach((label) => {
-//         console.log(`- ${label.name}`);
-//       });
-//     } else {
-//       console.log('No labels found.');
-//     }
-//   });
-// }
+    //console.log(res.data);
+    if (labels.length) {
+      console.log('Labels:');
+      labels.forEach((label) => {
+        console.log(`- ${label.name}`);
+      });
+    } else {
+      console.log('No labels found.');
+    }
+  });
+}
 
 /**
  * Get Message with given ID.
