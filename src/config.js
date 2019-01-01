@@ -7,7 +7,11 @@ const dev = {
     gmail_scopes: [
       'https://mail.google.com/'
     ],
-    gmail_token: 'token.json'
+    gmail_token: 'gmail_token.json',
+    emails_from: [
+      'no-reply@alertsp.chase.com',
+      'alerts@notify.wellsfargo.com'
+    ]
   }
 };
 

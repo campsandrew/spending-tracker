@@ -32,56 +32,25 @@ function gmailCodeRoute(req, res) {
 
 /**
  *
-*/
+ */
 function messagesRoute(req, res) {
-  let init_params = {
-    userId: 'me',
-    q: 'from:no-reply@alertsp.chase.com'
-  }
-  let getPage = function(params, result) {
-    gmail.users.messages.list(params)
-      .then(response => {
-        let nextPage = response.data.nextPageToken;
-        let msg_promises = [];
-        let messages = [];
+  //let query = 'from:alerts@notify.wellsfargo.com';
+  let query = 'from:no-reply@alertsp.chase.com';
 
-        // Get contents of all messages
-        response.data.messages.forEach(function(msg) {
-          msg_promises.push(
-             spending.getMessage(msg.id)
-               .then(msg_body => {
-                 messages.push(msg_body);
-               })
-               .catch(err => {
-                 res.send(err);
-               })
-          );
-        });
-
-        // Wait until list of promises are resolved
-        Promise.all(msg_promises).then(() => {
-          let all_messages  = result.concat(messages);
-
-          if(nextPage) {
-             let next_params = {
-               userId: 'me',
-               pageToken: nextPage,
-               q: 'from:no-reply@alertsp.chase.com Your Daily Account Summary Alert From Chase'
-             }
-
-             getPage(next_params, all_messages);
-          } else {
-            res.json(all_messages);
-          }
-        });
-      })
-      .catch(err => {
-        res.send(err);
+  // Get all message based on query
+  spending.getMessageList('me', query)
+    .then(msg_list => {
+      msg_list.sort(function(a, b) {
+        return new Date(b.date) - new Date(a.date);
       });
-  }
 
-  // Get all pages of messages recursively
-  getPage(init_params, []);
+      //fs.writeFileSync('wells_fargo.json', JSON.stringify(msg_list, null, 2));
+      //fs.writeFileSync('chase.json', JSON.stringify(msg_list, null, 2));
+      res.json(msg_list);
+    })
+    .catch(err => {
+      res.json(err);
+    });
 }
 
 module.exports = router;

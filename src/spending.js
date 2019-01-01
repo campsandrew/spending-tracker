@@ -48,29 +48,140 @@ function init() {
 /**
  *
  */
+function getMessageList(userId, query) {
+  let promise = new Promise(function(resolve, reject) {
+    let params = {
+      userId: userId,
+      q: query
+    }
+
+    // Get a back of email ids
+    let getPage = function(params, result) {
+
+      // Use google api to get a list of emails
+      gmail.users.messages.list(params)
+        .then(response => {
+          let nextPage = response.data.nextPageToken;
+          let msg_promises = [];
+          let messages = [];
+
+          // Get contents of all messages
+          if(response.data.messages) {
+            response.data.messages.forEach(function(msg) {
+              msg_promises.push(
+                getMessage(msg.id)
+                  .then(msg_body => {
+                    messages.push(msg_body);
+                  })
+                  .catch(err => {
+                    message.push(err);
+                  })
+              );
+            });
+          }
+
+          // // Wait until list of promises are resolved
+          Promise.all(msg_promises).then(() => {
+            all_messages  = result.concat(messages);
+
+            if(nextPage) {
+                let next_params = {
+                  userId: userId,
+                  pageToken: nextPage,
+                  q: query
+                }
+
+               getPage(next_params, all_messages);
+            } else {
+              resolve(all_messages);
+            }
+          });
+        })
+        .catch(err => {
+          reject(err);
+        });
+    }
+
+    // Get all pages of messages recursively
+    getPage(params, []);
+  });
+
+  return promise;
+}
+
+/**
+ *
+ */
 function getMessage(messageId) {
   let params = {
     userId: 'me',
     id: messageId
   }
 
-  return new Promise(function(resolve, reject) {
+  let promise = new Promise(function(resolve, reject) {
     gmail.users.messages.get(params)
       .then(res => {
-        let buff = new Buffer.from(res.data.payload.body.data, 'base64');
+        let msgHeaders = getMessageHeaders(res.data.payload);
+        let msgBody = getMessageBody(res.data.payload);
+        let payload = {
+          date: msgHeaders.date,
+          subject: msgHeaders.subject,
+          body: msgBody
+        }
         
-        resolve({
-          date: Date(res.data.internalDate),
-          body: buff.toString('ascii')
-        });
+        resolve(payload);
       })
       .catch(err => {
         reject(err);
       });
   });
+
+  return promise;
+}
+
+/**
+ *
+ */
+function getMessageHeaders(payload) {
+  let headers = {}
+
+  // Get needed headers from each email
+  for(let header of payload.headers) {
+    if(header.name.toLowerCase() === 'subject') {
+      headers['subject'] = header.value;
+    }
+    if(header.name.toLowerCase() === 'date') {
+      headers['date'] = header.value;
+    }
+  }
+
+  return headers;
+}
+
+/**
+ *
+ */
+function getMessageBody(payload) {
+  let body = [];
+
+  // Checks if body message exists
+  if(payload.body.size) {
+    let buff = new Buffer.from(payload.body.data, 'base64');
+    body.push(buff.toString('ascii'));
+  }
+
+  // Checks if there are more parts to the body
+  if(payload.hasOwnProperty('parts')) {
+    for(let part of payload.parts) {
+      body = body.concat(getMessageBody(part));
+    }
+  }
+
+  return body
 }
 
 module.exports = {
   initialize: init,
-  getMessage: getMessage
+  getMessage: getMessage,
+  getMessageList: getMessageList
 };
