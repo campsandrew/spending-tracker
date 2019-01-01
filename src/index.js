@@ -4,29 +4,14 @@ const spending = require('./spending');
 const routes = require('./routes');
 
 //////////
-// Constant created variables
+// Create express app
 const app = express();
 
 //////////
-// Express routes
+// Express settings
 app.use("/", routes);
-app.use(routeError);
-
-//////////
-// Start app using config port
 app.listen(server.port);
 
 //////////
 // Initialize spending app
-spending.initialize();
-
-/**
- * ROUTING ERROR
- */
-function routeError(req, res, next) {
-  let payload = {
-    message: '404 ERROR'
-  };
-
-  res.json(payload)
-}
+spending.initialize(app);

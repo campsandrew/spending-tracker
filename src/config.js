@@ -12,6 +12,13 @@ const dev = {
       'no-reply@alertsp.chase.com',
       'alerts@notify.wellsfargo.com'
     ]
+  },
+  database: {
+    host: 'ds145704.mlab.com',
+    port: 45704,
+    user: 'andrewcamps',
+    password: 'Andreini1!',
+    dbName: 'spending-app'
   }
 };
 

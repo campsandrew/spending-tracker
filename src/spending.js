@@ -1,15 +1,27 @@
 const {google} = require('googleapis');
+const mongoose = require('mongoose');
 const path = require('path');
 const opn = require('opn');
 const fs = require('fs');
 const {server} = require('./config');
+const {database} = require('./config');
 
 /**
  *
  */
-function init() {
+function init(app) {
   let cred_path = path.resolve('keys', server.gmail_credentials);
   let tok_path = path.resolve('keys', server.gmail_token);
+  let dbUri = `mongodb://${database.user}:${database.password}@${database.host}:${database.port}/${database.dbName}`;
+  let dbOptions  = {
+    useNewUrlParser: true
+  }
+
+  // Connect to database
+  mongoose.connect(dbUri, dbOptions)
+    .catch(err => {
+      console.log(err);
+    });
 
   // Read google credential file
   try {
@@ -19,7 +31,7 @@ function init() {
       redirect_uris
     } = JSON.parse(fs.readFileSync(cred_path));
 
-    global.oAuth2Client = new google.auth.OAuth2(
+    app.locals.oAuth2Client = new google.auth.OAuth2(
         client_id, client_secret, redirect_uris[0]);
   } catch(err) {
     return console.log('Error loading google credentials: ', err);
@@ -29,10 +41,10 @@ function init() {
   try {
     let token = fs.readFileSync(tok_path);
 
-    oAuth2Client.setCredentials(JSON.parse(token));
-    global.gmail = google.gmail({version: 'v1', auth: oAuth2Client});
+    app.locals.oAuth2Client.setCredentials(JSON.parse(token));
+    app.locals.gmail = google.gmail({version: 'v1', auth: app.locals.oAuth2Client});
   } catch(err) {
-    let authUrl = oAuth2Client.generateAuthUrl({
+    let authUrl = app.locals.oAuth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: server.gmail_scopes
     });
@@ -48,7 +60,7 @@ function init() {
 /**
  *
  */
-function getMessageList(userId, query) {
+function getMessageList(gmail, userId, query) {
   let promise = new Promise(function(resolve, reject) {
     let params = {
       userId: userId,
@@ -69,7 +81,7 @@ function getMessageList(userId, query) {
           if(response.data.messages) {
             response.data.messages.forEach(function(msg) {
               msg_promises.push(
-                getMessage(msg.id)
+                getMessage(gmail, msg.id)
                   .then(msg_body => {
                     messages.push(msg_body);
                   })
@@ -112,7 +124,7 @@ function getMessageList(userId, query) {
 /**
  *
  */
-function getMessage(messageId) {
+function getMessage(gmail, messageId) {
   let params = {
     userId: 'me',
     id: messageId

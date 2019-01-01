@@ -9,6 +9,7 @@ const spending = require('./spending');
 // Server routes
 router.use('/gmail/code', gmailCodeRoute);
 router.use('/gmail/messages', messagesRoute);
+router.use(routeError);
 
 /**
  *
@@ -17,12 +18,11 @@ function gmailCodeRoute(req, res) {
   if(!req.query.code) return res.send('Invalid request');
 
   let tok_path = path.resolve('keys', server.gmail_token);
-
-  oAuth2Client.getToken(req.query.code, (err, token) => {
+  req.app.locals.oAuth2Client.getToken(req.query.code, (err, token) => {
     if (err) return res.send(err);
 
-    oAuth2Client.setCredentials(token);
-    global.gmail = google.gmail({version: 'v1', auth: oAuth2Client});
+    req.app.locals.oAuth2Client.setCredentials(token);
+    req.app.locals.gmail = google.gmail({version: 'v1', auth: req.app.locals.oAuth2Client});
     fs.writeFile(tok_path, JSON.stringify(token), (err) => {
       if (err) return res.send(err);
       res.send('Token stored to: ' + tok_path);
@@ -34,11 +34,11 @@ function gmailCodeRoute(req, res) {
  *
  */
 function messagesRoute(req, res) {
-  //let query = 'from:alerts@notify.wellsfargo.com';
-  let query = 'from:no-reply@alertsp.chase.com';
+  let query = 'from:alerts@notify.wellsfargo.com';
+  //let query = 'from:no-reply@alertsp.chase.com';
 
   // Get all message based on query
-  spending.getMessageList('me', query)
+  spending.getMessageList(req.app.locals.gmail, 'me', query)
     .then(msg_list => {
       msg_list.sort(function(a, b) {
         return new Date(b.date) - new Date(a.date);
@@ -51,6 +51,17 @@ function messagesRoute(req, res) {
     .catch(err => {
       res.json(err);
     });
+}
+
+/**
+ * ROUTING ERROR
+ */
+function routeError(req, res) {
+  let payload = {
+    message: '404 ERROR'
+  };
+
+  res.json(payload)
 }
 
 module.exports = router;
